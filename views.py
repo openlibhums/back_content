@@ -24,6 +24,7 @@ def index(request):
         article = models.Article.objects.create(
             journal=request.journal,
             date_accepted=timezone.now(),
+            owner=request.user,
             is_import=True,
             article_agreement='This record was created using the back '
                               'content plugin.',
