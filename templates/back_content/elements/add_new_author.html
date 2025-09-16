@@ -1,0 +1,46 @@
+{% load foundation %}
+{% load i18n %}
+
+<div class="reveal large" id="author" data-reveal data-animation-in="slide-in-up"
+     data-animation-out="slide-out-down">
+  <div class="card">
+    <div class="card-divider">
+      <h4><i class="fa fa-user">&nbsp;</i>{% trans "Add New Author" %}</h4>
+    </div>
+    <div class="card-section">
+      <button class="close-button" data-close aria-label="Close reveal" type="button">
+        <span aria-hidden="true">&times;</span>
+      </button>
+      {% include "admin/elements/forms/errors.html" with form=form %}
+      <form method="POST">
+        {% csrf_token %}
+        <div class="flex direction-column row-gap-0">
+          <div class="grid auto row-gap-0">
+            {% include "admin/elements/forms/field.html" with field=form.first_name %}
+            {% include "admin/elements/forms/field.html" with field=form.middle_name %}
+            {% include "admin/elements/forms/field.html" with field=form.last_name %}
+          </div>
+          <div class="grid auto row-gap-0">
+            {% include "admin/elements/forms/field.html" with field=form.name_prefix %}
+            {% include "admin/elements/forms/field.html" with field=form.name_suffix %}
+            {% include "admin/elements/forms/field.html" with field=form.is_corporate %}
+          </div>
+          <div class="grid auto row-gap-0">
+            {% include "admin/elements/forms/field.html" with field=form.frozen_email %}
+            {% include "admin/elements/forms/field.html" with field=form.display_email %}
+          </div>
+          <div class="flex wrap gap-1 items-end">
+            <div class="button-group">
+              <button
+                      name="add_author"
+                      class="button">
+                <span class="fa fa-user-plus"></span>
+                {% trans "Add author manually" %}
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
