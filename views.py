@@ -6,14 +6,15 @@ from django.contrib import messages
 from django.utils import timezone
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
+from django.db.models import Q
 
-from submission import models, forms, logic
-from core import models as core_models, files
+from submission import models, forms
+from submission.logic import add_new_author_from_form, get_credit_form
+from core import models as core_models
 from plugins.back_content import forms as bc_forms, logic as bc_logic, plugin_settings
 from production import logic as prod_logic, forms as prod_forms
 from identifiers import logic as id_logic
 from security.decorators import editor_user_required
-from utils import shared
 from journal import logic as journal_logic
 from events import logic as event_logic
 
@@ -60,7 +61,7 @@ def article(request, article_id):
         instance=article,
         additional_fields=additional_fields,
     )
-    author_form = forms.AuthorForm()
+    author_form = forms.EditFrozenAuthor()
     pub_form = bc_forms.PublicationInfo(instance=article)
     remote_form = bc_forms.RemoteArticle(instance=article)
     galley_form = prod_forms.GalleyForm()
@@ -135,52 +136,27 @@ def article(request, article_id):
             )
 
         if 'set_main' in request.POST:
-            correspondence_author = request.POST.get('set_main', None)
+            account = get_object_or_404(
+                core_models.Account,
+                pk=request.POST.get('set_main', None),
+                frozenauthor__article=article,
+            )
+            article.correspondence_author = account
+            article.save()
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                _('%(author_name)s (%(email)s) made correspondence author.')
+                % {
+                    "author_name": account.full_name(),
+                    "email": account.email
+                },
+            )
 
-            if correspondence_author:
-                author = core_models.Account.objects.get(pk=correspondence_author)
-                article.correspondence_author = author
-                article.save()
-                return bc_logic.return_url(
-                    article,
-                    section='section-two',
-                )
-
-        if 'add_author' in request.POST:
-            author_form = forms.AuthorForm(request.POST)
-            modal = 'author'
-
-            author = logic.check_author_exists(request.POST.get('email'))
-            if author:
-                article.authors.add(author)
-                messages.add_message(
-                    request,
-                    messages.SUCCESS,
-                    '%s added to the article' % author.full_name(),
-                )
-            else:
-                if author_form.is_valid():
-                    author = author_form.save(commit=False)
-                    author.username = author.email
-                    author.set_password(shared.generate_password())
-                    author.save()
-                    author.add_account_role(
-                        role_slug='author',
-                        journal=request.journal,
-                    )
-                    article.authors.add(author)
-                    messages.add_message(
-                        request,
-                        messages.SUCCESS,
-                        '%s added to the article' % author.full_name(),
-                    )
-
-            models.ArticleAuthorOrder.objects.get_or_create(
-                article=article,
-                author=author,
-                defaults={
-                    'order': article.next_author_sort(),
-                }
+        if request.POST and 'add_author' in request.POST:
+            add_new_author_from_form(
+                request,
+                article,
             )
 
             return bc_logic.return_url(
@@ -192,15 +168,11 @@ def article(request, article_id):
             author_pk = request.POST.get('remove_author', None)
             if author_pk:
                 author_to_remove = get_object_or_404(
-                    core_models.Account,
+                    models.FrozenAuthor,
                     pk=author_pk,
                 )
-                article.authors.remove(author_to_remove)
-                models.ArticleAuthorOrder.objects.filter(
-                    article=article,
-                    author=author_to_remove,
-                ).delete()
-                if author_to_remove == article.correspondence_author:
+                author_to_remove.delete()
+                if author_to_remove.author == article.correspondence_author:
                     article.correspondence_author = None
                     article.save()
                 messages.success(
@@ -240,6 +212,11 @@ def article(request, article_id):
             else:
                 return redirect(reverse('bc_index'))
 
+    authors = []
+    for author, credits in article.authors_and_credits().items():
+        credit_form = get_credit_form(request, author)
+        authors.append((author, credits, credit_form))
+
     template = 'back_content/article.html'
     context = {
         'article': article,
@@ -251,6 +228,7 @@ def article(request, article_id):
         'modal': modal,
         'galley_form': galley_form,
         'additional_fields': additional_fields,
+        'authors': authors,
     }
 
     return render(request, template, context)
@@ -371,13 +349,9 @@ class BCPAuthorSearch(BaseUserList):
                 pk=author_id,
             )
             if author in self.get_queryset():
-                self.article.authors.add(author)
-                models.ArticleAuthorOrder.objects.get_or_create(
-                    article=self.article,
-                    author=author,
-                    defaults={
-                        'order': self.article.next_author_sort(),
-                    }
+                author, created = models.FrozenAuthor.get_or_snapshot_if_email_found(
+                    author.email,
+                    self.article,
                 )
                 messages.success(
                     request,
