@@ -17,6 +17,7 @@ class PublicationInfo(forms.ModelForm):
             'primary_issue',
             'peer_reviewed',
             'render_galley',
+            'stage',
         )
         help_texts = {
             'render_galley': 'Render Galleys are displayed on the Article page'
