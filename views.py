@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 
 from submission import models, forms
-from submission.logic import add_new_author_from_form, get_credit_form
+from submission.logic import add_new_author_from_form, get_current_authors
 from core import models as core_models
 from plugins.back_content import forms as bc_forms, logic as bc_logic, plugin_settings
 from production import logic as prod_logic, forms as prod_forms
@@ -212,11 +212,6 @@ def article(request, article_id):
             else:
                 return redirect(reverse('bc_index'))
 
-    authors = []
-    for author, credits in article.authors_and_credits().items():
-        credit_form = get_credit_form(request, author)
-        authors.append((author, credits, credit_form))
-
     template = 'back_content/article.html'
     context = {
         'article': article,
@@ -228,7 +223,7 @@ def article(request, article_id):
         'modal': modal,
         'galley_form': galley_form,
         'additional_fields': additional_fields,
-        'authors': authors,
+        'authors': get_current_authors(article, request),
     }
 
     return render(request, template, context)

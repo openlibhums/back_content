@@ -73,16 +73,15 @@
                 <div class="title-area">
                     <h2 id="section-two">2. Article Authors</h2>
                 </div>
-                <div class="content" data-equalizer data-equalize-on="medium">
-                    <div class="large-4 columns" data-equalizer-watch>
+                <div class="content">
+                    <div class="large-12 columns">
                         <p>{% trans "You can add an author by clicking the button below. This will open a popup modal for you to complete their details. If you do not have a legitimate email address for this author use @journal.com as a prefix for their email address and Janeway will ignore it." %}</p>
                         <a href="#" data-open="author" class="small success button">{% trans "Add New Author" %}</a>
                         {% include "back_content/elements/add_new_author.html" %}
                         <p>{% trans "If you know of an existing author, you can search for them." %}</p>
                         <a href="{% url 'bc_article_authors' article.pk %}" class="small success button">Search Accounts for Authors</a>
-
                     </div>
-                    <div class="large-8 columns" data-equalizer-watch>
+                    <div class="large-12 columns">
                         <h4>{% trans "Current Authors" %}</h4>
                         {% include "elements/current_authors.html" %}
                     </div>
