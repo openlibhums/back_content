@@ -181,6 +181,11 @@
                                 <br/>
                                 {{ pub_form.peer_reviewed|foundation }}
                             </div>
+                            <div class="large-4 columns">
+                                <br/>
+                                {{ pub_form.stage|foundation }}
+                            </div>
+
                             <div class="large-12 columns">
                                 {% if article and article.date_published %}
                                 <p>More Pub Info is available on the <a href="{% url 'publish_article' article.pk %}">Pre Publication Checklist</a>.</p>
